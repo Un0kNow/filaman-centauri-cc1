@@ -1,0 +1,1665 @@
+<!doctype html>
+<html lang="en" data-theme="brand">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Elegoo CC1 · FilaMan</title>
+  <link rel="stylesheet" href="/plugin-fonts.css">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0c1612;
+      --panel: rgba(19, 38, 29, .94);
+      --card: #13261d;
+      --surface: #183225;
+      --line: rgba(255, 255, 255, .08);
+      --text: #e9f3ec;
+      --muted: #b5c7bd;
+      --accent: #4ee3a2;
+      --accent-strong: #6cc6ff;
+      --on-accent: #0c1612;
+      --link: #4ee3a2;
+      --warning: #f7c86a;
+      --danger: #ff8686;
+      --shadow: 0 18px 50px rgba(22, 50, 35, .09);
+      --gradient-hero:
+        radial-gradient(circle at 20% 20%, rgba(78, 227, 162, .25), transparent 60%),
+        radial-gradient(circle at 80% 0%, rgba(108, 198, 255, .18), transparent 55%),
+        linear-gradient(140deg, #0c1612 0%, #12251b 45%, #0b1410 100%);
+      --gradient-accent: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      --font-sans: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+    }
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --bg: #f8f6f1;
+      --panel: rgba(255, 255, 255, .92);
+      --card: #fff;
+      --surface: #f1ece3;
+      --line: rgba(26, 35, 30, .12);
+      --text: #1a231e;
+      --muted: #53645a;
+      --accent: #1c9b6b;
+      --accent-strong: #2b7bc7;
+      --on-accent: #071b12;
+      --link: #166747;
+      --warning: #924d0f;
+      --danger: #b91c1c;
+      --gradient-hero:
+        radial-gradient(circle at 20% 20%, rgba(28, 155, 107, .16), transparent 60%),
+        radial-gradient(circle at 80% 0%, rgba(43, 123, 199, .14), transparent 55%),
+        linear-gradient(140deg, #f8f6f1 0%, #f1ece3 50%, #fff 100%);
+    }
+    :root[data-theme="dark"] {
+      --bg: #0b0d12;
+      --panel: rgba(20, 24, 37, .94);
+      --card: #141825;
+      --surface: #1a2032;
+      --text: #eef1f7;
+      --muted: #9aa4b7;
+      --accent: #73d1ff;
+      --accent-strong: #8cf3b2;
+      --on-accent: #0b0d12;
+      --link: #73d1ff;
+      --warning: #f4b65f;
+      --shadow: 0 18px 55px rgba(0, 0, 0, .28);
+      --gradient-hero:
+        radial-gradient(circle at 20% 20%, rgba(115, 209, 255, .25), transparent 60%),
+        radial-gradient(circle at 80% 0%, rgba(140, 243, 178, .18), transparent 55%),
+        linear-gradient(145deg, #0b0d12 0%, #0f1421 55%, #0b0d12 100%);
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html { min-height: 100%; background: var(--bg); }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--gradient-hero);
+      color: var(--text);
+      font: 15px/1.5 var(--font-sans);
+    }
+    main { width: min(1440px, calc(100% - 32px)); margin: 0 auto; padding: 28px 0 56px; }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: clamp(30px, 5vw, 52px); line-height: 1.02; letter-spacing: -.045em; }
+    h2 { font-size: 18px; }
+    h3 { font-size: 16px; line-height: 1.25; }
+    .page-header, .section-heading, .progress-label, .spool-balance {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: .6rem 1rem;
+    }
+    .page-header { align-items: end; gap: 16px 24px; margin-bottom: 24px; }
+    .eyebrow {
+      margin: 0 0 6px;
+      color: var(--accent-strong);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .page-actions { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; }
+    .printer-state { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+    .panel {
+      --panel-inset: 18px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: var(--panel-inset);
+      box-shadow: var(--shadow);
+    }
+    .panel > .section-heading {
+      margin: calc(-1 * var(--panel-inset)) calc(-1 * var(--panel-inset)) 0;
+      padding: 19px var(--panel-inset);
+      border-bottom: 1px solid var(--line);
+    }
+    .panel + .panel { margin-top: 18px; }
+    .panel[data-active="true"] { border-color: color-mix(in srgb, var(--accent) 70%, transparent); }
+    #printer-control { min-width: 0; }
+    #printer { width: 100%; max-width: min(100%, 310px); }
+    #printer-link { color: inherit; overflow-wrap: anywhere; }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 3px 9px;
+      background: var(--surface);
+      font-size: 12px;
+      font-weight: 750;
+      color: var(--muted);
+    }
+    .pill::before { content: ""; width: .42rem; height: .42rem; border-radius: 50%; background: currentColor; }
+    .pill[data-tone="online"] { color: var(--link); background: color-mix(in srgb, var(--accent) 15%, var(--card)); }
+    .pill[data-tone="warn"] { color: var(--warning); }
+    .pill[data-tone="error"] { color: var(--danger); }
+    .meter { margin-top: .9rem; }
+    .progress-label { margin-bottom: .36rem; }
+    .percent { color: var(--text); font-size: 1.38rem; font-variant-numeric: tabular-nums; }
+    progress {
+      display: block;
+      width: 100%;
+      height: 7px;
+      appearance: none;
+      border: 0;
+      border-radius: 999px;
+      overflow: hidden;
+      background: var(--surface);
+      accent-color: var(--accent);
+    }
+    progress::-webkit-progress-bar { background: var(--surface); }
+    progress::-webkit-progress-value { background: var(--gradient-accent); border-radius: 999px; }
+    progress::-moz-progress-bar { background: var(--gradient-accent); border-radius: 999px; }
+    label, .muted { color: var(--muted); font-size: 13px; }
+    .live-print { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 1rem; margin-top: .95rem; }
+    .preview {
+      display: grid;
+      place-items: center;
+      width: 7.5rem;
+      aspect-ratio: 1;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+      text-align: center;
+    }
+    .preview span { padding: .35rem; font-size: .75rem; }
+    .preview img { width: 100%; height: 100%; min-height: 0; object-fit: contain; }
+    .print-name { overflow-wrap: anywhere; font-size: 1.05rem; }
+    .metrics { display: flex; flex-wrap: wrap; gap: .35rem 1.5rem; margin: .65rem 0 0; }
+    .metrics dd, .history-meta dd { margin: 0; font-variant-numeric: tabular-nums; }
+    .metrics dd { font-weight: 600; }
+    .notice { margin-top: .7rem; color: var(--danger); font-size: .9rem; }
+    .spool-holder {
+      display: flex;
+      align-items: flex-start;
+      margin-top: 18px;
+      border: 1px solid var(--line);
+      border-radius: 17px;
+      overflow: hidden;
+      background: var(--card);
+    }
+    .spool-photo {
+      position: relative;
+      flex: 0 0 clamp(10rem, 24vw, 15rem);
+      display: grid;
+      place-items: center;
+      aspect-ratio: 1;
+      overflow: hidden;
+      background: linear-gradient(145deg, var(--surface), var(--card));
+      text-align: center;
+    }
+    .spool-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #fff; }
+    .spool-content { flex: 1; min-width: 0; padding: 16px 17px 18px; }
+    .spool-kicker, .spool-facts dt { font-size: 11px; font-weight: 750; letter-spacing: .04em; text-transform: uppercase; }
+    .spool-name { margin: 7px 0 2px; font-size: 18px; letter-spacing: -.02em; overflow-wrap: anywhere; }
+    .spool-balance { align-items: baseline; margin-top: .65rem; }
+    .spool-balance strong { font-size: 22px; font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+    .low-filament { margin-top: 7px; }
+    .spool-progress { margin-top: 7px; }
+    .spool-facts { margin-top: 15px; padding-top: 13px; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+    .spool-color { display: flex; align-items: center; gap: .35rem; }
+    .color-swatch { flex: 0 0 .9rem; height: .9rem; border: 1px solid currentColor; border-radius: 50%; }
+    .fleet-summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin: 22px 0 26px;
+    }
+    .fleet-summary > div, .canvas-card {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 17px 18px;
+      background: var(--panel);
+    }
+    .fleet-summary > div { min-height: 98px; }
+    .fleet-summary dt {
+      font-size: 12px;
+      font-weight: 650;
+    }
+    .fleet-summary dd {
+      margin: 3px 0 0;
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -.035em;
+      font-variant-numeric: tabular-nums;
+    }
+    .canvas-overview { margin-top: 1.15rem; }
+    .canvas-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+      gap: .65rem;
+      padding: 0;
+      margin: .65rem 0 0;
+      list-style: none;
+    }
+    .canvas-card { background: var(--card); }
+    .canvas-card[data-active="true"] { border-color: var(--accent); }
+    .canvas-card h4 { margin: .5rem 0 .1rem; overflow-wrap: anywhere; }
+    .canvas-card .spool-photo { margin-top: .55rem; width: 100%; max-height: 7rem; aspect-ratio: 2 / 1; border-radius: 10px; }
+    .canvas-card .spool-balance { gap: .25rem; margin-top: .4rem; }
+    .canvas-card .spool-balance strong { font-size: 1.03rem; }
+    .canvas-card button { margin-top: .55rem; padding: .3rem .55rem; font-size: .87rem; }
+    .canvas-card .canvas-spool-link, #canvas-message { margin-top: .35rem; }
+    #canvas-link-dialog form + form { margin-top: .8rem; }
+    .holder-actions { display: flex; align-items: baseline; flex-wrap: wrap; gap: .45rem 1rem; }
+    button, select, input, .button-link {
+      min-height: 42px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 0 13px;
+      color: var(--text);
+      font: inherit;
+    }
+    button, .button-link { padding-inline: 15px; cursor: pointer; font-weight: 700; }
+    .button-link { display: inline-flex; align-items: center; color: var(--text); }
+    button:hover:not(:disabled), .button-link:hover { border-color: var(--accent); }
+    button:disabled { cursor: default; opacity: .55; }
+    button.primary { background: var(--gradient-accent); border-color: transparent; color: var(--on-accent); }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    a { color: var(--link); text-underline-offset: .18em; }
+    details { margin-top: .65rem; }
+    summary { width: fit-content; cursor: pointer; color: var(--link); font-weight: 600; }
+    details[open] summary { margin-bottom: .65rem; }
+    .controls { display: flex; align-items: center; gap: .5rem; }
+    .controls input, .controls select { flex: 1; min-width: 0; }
+    form + form { margin-top: .65rem; }
+    #spool-message { margin-top: .45rem; }
+    #spool-check, #filament-estimate { margin-top: .45rem; }
+    #spool-check[data-warning="true"], #filament-estimate[data-warning="true"] { color: var(--warning); }
+    #gcode-file { width: 100%; padding: 8px 13px; }
+    dialog { width: min(32rem, calc(100% - 2rem)); color: var(--text); }
+    dialog::backdrop { background: rgb(0 0 0 / .55); }
+    dialog .controls, dialog p, dialog form { margin-top: .65rem; }
+    dialog .dialog-actions { flex-wrap: wrap; justify-content: flex-end; }
+    label { display: block; margin-bottom: .25rem; }
+    .prints-panel { border-radius: 14px; }
+    .prints-panel h2 { font: 700 1.15rem/1.3 "Fraunces", Georgia, serif; }
+    .history-filters {
+      display: grid;
+      grid-template-columns: minmax(9rem, 1fr) repeat(4, minmax(0, auto));
+      gap: .5rem;
+      margin: .65rem 0;
+    }
+    .history-filters > *, .prints-panel button {
+      min-height: 36px;
+      background: var(--surface);
+      font-size: .875rem;
+    }
+    .history-filters > * { min-width: 0; width: 100%; }
+    #history-printer { max-width: 14rem; }
+    .history-list { margin: 0; padding: 0; list-style: none; }
+    .history-entry {
+      display: grid;
+      grid-template-columns: minmax(0, min(26%, 13.75rem)) minmax(0, 1fr);
+      align-items: start;
+      gap: 1rem;
+      border-top: 1px solid var(--line);
+      padding: 1rem 0;
+    }
+    .history-entry .history-preview { width: 100%; }
+    .history-preview button {
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      border: 0;
+      cursor: zoom-in;
+    }
+    .history-preview button:has(img[hidden]) { display: none; }
+    .history-preview button:focus-visible { outline-offset: -3px; }
+    .history-status, .history-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: .3rem .55rem;
+      margin: .45rem 0 0;
+    }
+    .history-meta > div { display: flex; align-items: baseline; gap: .3rem; }
+    .history-meta > div:not([hidden]) ~ div::before { content: "·"; padding-right: .2rem; }
+    .history-spool {
+      display: grid;
+      grid-template-columns: .4rem minmax(0, 1fr);
+      gap: .65rem;
+      margin-top: .6rem;
+      padding: .6rem .7rem;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface);
+      overflow-wrap: anywhere;
+    }
+    .history-spool-color { border-radius: 5px; background: var(--muted); }
+    .history-spool a { font-weight: 650; }
+    .history-entry [data-field="resolve"] { margin-top: .6rem; }
+    #history-message { margin-top: .55rem; }
+    #older { margin-top: .7rem; }
+    #history-preview-dialog { width: min(44rem, calc(100% - 2rem)); }
+    #history-preview-dialog img { display: block; width: 100%; max-height: 70vh; object-fit: contain; margin-top: .7rem; }
+    @media (max-width: 820px) {
+      .history-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .history-filters > input { grid-column: 1 / -1; }
+    }
+    @media (max-width: 520px) {
+      main { width: calc(100% - 24px); padding-top: 20px; }
+      .panel { --panel-inset: 14px; }
+      .panel > .section-heading { padding-block: 14px; }
+      .fleet-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .fleet-summary > div { min-height: 82px; padding: 12px; }
+      .fleet-summary dd { font-size: 24px; }
+      .spool-holder { flex-direction: column; }
+      .spool-photo { flex: none; width: 100%; max-height: 11rem; aspect-ratio: 16 / 9; }
+      .spool-content { width: 100%; }
+      .live-print { gap: .65rem; }
+      .live-print .preview { width: 4.75rem; }
+      #history-view, #history-printer { grid-column: 1 / -1; max-width: none; }
+      .history-entry { gap: .65rem; }
+      .history-meta { gap: .2rem .45rem; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="page-header">
+      <div>
+        <p class="eyebrow">Elegoo CC1</p>
+        <h1>Spool overview</h1>
+      </div>
+      <div class="page-actions">
+        <a class="button-link" href="/printers/" target="_blank" rel="noopener">Manage printers</a>
+        <div id="printer-control" hidden>
+          <label for="printer">Select printer</label>
+          <select id="printer"></select>
+        </div>
+        <button id="refresh" type="button" disabled>Refresh</button>
+      </div>
+    </header>
+    <dl class="fleet-summary" aria-label="CC1 fleet summary">
+      <div><dt class="muted">Printers online</dt><dd id="fleet-online">—</dd></div>
+      <div><dt class="muted">Occupied slots</dt><dd id="fleet-occupied">—</dd></div>
+      <div><dt class="muted">FilaMan spools</dt><dd id="fleet-spools">—</dd></div>
+      <div><dt class="muted">Catalog images</dt><dd id="fleet-images">—</dd></div>
+    </dl>
+    <section class="panel" aria-labelledby="spool-heading">
+      <div class="section-heading">
+        <h2 id="spool-heading">
+          <span id="printer-heading">Printer</span>
+          <a id="printer-link" target="_blank" rel="noopener" hidden></a>
+        </h2>
+        <div class="printer-state">
+          <p class="muted" id="last-seen" hidden>Last seen <time></time></p>
+          <span class="pill" id="connection" role="status">Loading…</span>
+        </div>
+      </div>
+      <p class="notice" id="printer-error" role="status" hidden></p>
+      <div class="spool-holder">
+        <div class="spool-photo" id="spool-photo" hidden>
+          <p class="muted" id="spool-photo-status">No catalog photo</p>
+          <img id="spool-photo-image" alt="" referrerpolicy="no-referrer" hidden>
+        </div>
+        <div class="spool-content">
+          <p class="muted spool-kicker">Spool holder</p>
+          <h3 class="spool-name" id="spool-name">Waiting for spool status</h3>
+          <p class="muted" id="spool-manufacturer" hidden></p>
+          <div class="spool-balance" id="spool-balance" hidden>
+            <div id="spool-weight"><strong id="active-weight"></strong> <span class="muted" id="spool-weight-label">remaining</span></div>
+            <span class="muted" id="spool-percent" hidden></span>
+          </div>
+          <progress class="spool-progress" id="spool-progress" max="100" aria-label="Filament remaining" hidden></progress>
+          <p class="pill low-filament" id="spool-low-filament" data-tone="warn" hidden>Low filament</p>
+          <dl class="metrics spool-facts" id="spool-facts" hidden>
+            <div id="spool-material-row" hidden><dt class="muted">Material</dt><dd id="spool-material"></dd></div>
+            <div id="spool-color-row" hidden><dt class="muted">Color</dt><dd class="spool-color"><span class="color-swatch" id="spool-swatch" hidden aria-hidden="true"></span><span id="spool-color"></span></dd></div>
+            <div><dt class="muted">FilaMan spool</dt><dd><a id="active-spool" target="_blank" rel="noopener"></a></dd></div>
+          </dl>
+          <div class="holder-actions">
+            <details id="spool-picker" hidden>
+              <summary>Choose spool</summary>
+              <form id="spool-search">
+                <label for="search">Search inventory</label>
+                <div class="controls">
+                  <input id="search" type="search" maxlength="200" placeholder="ID, material, color">
+                  <button type="submit">Search</button>
+                </div>
+              </form>
+              <form id="spool-assign">
+                <label for="spools">Available spools</label>
+                <div class="controls">
+                  <select id="spools"></select>
+                  <button class="primary" id="assign" type="submit" disabled>Assign spool</button>
+                </div>
+              </form>
+            </details>
+            <button id="remove-spool" type="button" hidden>Remove spool</button>
+          </div>
+          <p id="spool-message" class="muted" role="status"></p>
+          <p id="spool-check" class="muted" hidden></p>
+          <details>
+            <summary>Check filament for a print</summary>
+            <label for="gcode-file">Sliced G-code file</label>
+            <input id="gcode-file" type="file" accept=".gcode">
+            <p id="filament-estimate" class="muted" role="status"></p>
+          </details>
+        </div>
+      </div>
+      <section class="canvas-overview" id="canvas-overview" aria-labelledby="canvas-heading" hidden>
+        <h3 id="canvas-heading">CANVAS slots</h3>
+        <p class="muted" id="canvas-message" role="status"></p>
+        <ul class="canvas-grid" id="canvas-slots"></ul>
+      </section>
+    </section>
+    <section class="panel" id="print-panel" aria-labelledby="live-heading">
+      <div class="section-heading">
+        <h2 id="live-heading">Current print</h2>
+        <span class="pill" id="status">—</span>
+      </div>
+      <div class="live-print" id="live-print" hidden>
+        <div class="preview" id="live-preview">
+          <span class="muted">No preview</span>
+          <img alt="Model preview" hidden>
+        </div>
+        <div>
+          <h3 class="print-name" id="print-name"></h3>
+          <div class="meter" id="meter" hidden>
+            <div class="progress-label">
+              <strong class="percent" id="percent"></strong>
+              <label for="layers" id="layer-label">Layer</label>
+            </div>
+            <progress id="layers"></progress>
+          </div>
+          <dl class="metrics">
+            <div><dt class="muted">Elapsed</dt><dd id="elapsed">—</dd></div>
+            <div><dt class="muted">Estimated duration</dt><dd id="estimated">—</dd></div>
+            <div id="remaining-row" hidden><dt class="muted">Estimated remaining</dt><dd id="remaining">—</dd></div>
+            <div><dt class="muted">Extrusion</dt><dd id="extrusion">—</dd></div>
+          </dl>
+        </div>
+      </div>
+    </section>
+    <section class="panel prints-panel" aria-labelledby="history-heading" aria-describedby="history-description">
+      <div class="section-heading">
+        <div>
+          <h2 id="history-heading">Prints</h2>
+          <p class="muted" id="history-description">CC1 usage history</p>
+        </div>
+        <button id="review-count" type="button" hidden></button>
+      </div>
+      <form class="history-filters" id="history-filters" role="search" aria-label="Filter prints">
+        <input id="history-search" type="search" maxlength="200" aria-label="Search history" placeholder="Search file or spool ID">
+        <select id="history-printer" aria-label="History printer" hidden>
+          <option value="">All printers</option>
+        </select>
+        <select id="history-view" aria-label="History view">
+          <option value="usage">Usage deductions</option>
+          <option value="review">Needs review</option>
+          <option value="reviewed">Reviewed</option>
+          <option value="stopped">No filament used</option>
+        </select>
+        <select id="outcome" aria-label="Outcome">
+          <option value="">All outcomes</option>
+          <option value="completed">Completed</option>
+          <option value="canceled">Canceled</option>
+        </select>
+        <select id="history-sort" aria-label="Sort by date">
+          <option value="desc">Newest first</option>
+          <option value="asc">Oldest first</option>
+        </select>
+      </form>
+      <ul class="history-list" id="events" aria-label="Print usage" hidden></ul>
+      <p id="history-message" class="muted" role="status">Loading…</p>
+      <p id="history-notice" class="muted" role="status"></p>
+      <button id="older" type="button" hidden>Show more</button>
+    </section>
+  </main>
+  <dialog id="history-preview-dialog" class="panel" aria-labelledby="history-preview-title">
+    <div class="section-heading">
+      <h2 id="history-preview-title" class="print-name"></h2>
+      <button type="button" id="history-preview-close">Close</button>
+    </div>
+    <img alt="Plate preview">
+  </dialog>
+  <dialog id="review-dialog" class="panel" aria-labelledby="review-title">
+    <h2 id="review-title">Resolve review</h2>
+    <p class="print-name" id="review-print"></p>
+    <p class="muted" id="review-extrusion"></p>
+    <form id="review-search" hidden>
+      <label for="review-query">Find the spool used for this print</label>
+      <div class="controls">
+        <input id="review-query" type="search" maxlength="200" placeholder="ID, material, color">
+        <button type="submit">Search</button>
+      </div>
+      <label for="review-spools">Spool to deduct from</label>
+      <div class="controls"><select id="review-spools"></select></div>
+    </form>
+    <p class="notice" id="review-message" role="status"></p>
+    <div class="controls dialog-actions">
+      <button type="button" id="review-close">Cancel</button>
+      <button type="button" id="review-mark">Mark reviewed</button>
+      <button type="button" class="primary" id="review-deduct" disabled>Confirm deduction</button>
+    </div>
+  </dialog>
+  <dialog class="panel" id="canvas-link-dialog" aria-labelledby="canvas-link-heading">
+    <h2 id="canvas-link-heading">Link inventory spool</h2>
+    <p class="muted" id="canvas-link-slot"></p>
+    <form id="canvas-link-search">
+      <label for="canvas-link-query">Search inventory</label>
+      <div class="controls">
+        <input id="canvas-link-query" type="search" maxlength="200" placeholder="ID, material, color">
+        <button type="submit">Search</button>
+      </div>
+    </form>
+    <form id="canvas-link-form">
+      <label for="canvas-link-spools">FilaMan spool</label>
+      <div class="controls"><select id="canvas-link-spools"></select></div>
+      <div class="controls dialog-actions">
+        <button type="button" id="canvas-link-close">Cancel</button>
+        <button type="button" id="canvas-unlink" hidden>Unlink spool</button>
+        <button type="submit" class="primary" id="canvas-link-save" disabled>Link spool</button>
+      </div>
+    </form>
+    <p class="muted" id="canvas-link-message" role="status"></p>
+  </dialog>
+  <template id="canvas-card-template">
+    <li class="canvas-card">
+      <div class="section-heading">
+        <p class="muted" data-slot="name"></p>
+        <span class="pill" data-slot="status"></span>
+      </div>
+      <div class="spool-photo" data-slot="photo" hidden>
+        <p class="muted">No catalog photo</p>
+        <img alt="" referrerpolicy="no-referrer" hidden>
+      </div>
+      <h4 data-slot="filament"></h4>
+      <p class="muted spool-color" data-slot="detail"><span class="color-swatch" aria-hidden="true" hidden></span><span></span></p>
+      <div class="spool-balance" data-slot="balance" hidden>
+        <span><strong data-slot="weight"></strong> <span class="muted" data-slot="weight-label"></span></span>
+        <span class="muted" data-slot="percent"></span>
+      </div>
+      <progress class="spool-progress" max="100" aria-label="Filament remaining" hidden></progress>
+      <p class="pill low-filament" data-slot="low-filament" data-tone="warn" hidden>Low filament</p>
+      <p class="muted canvas-spool-link" data-slot="inventory"></p>
+      <button type="button" data-slot="link" hidden>Link spool</button>
+    </li>
+  </template>
+  <template id="entry-template">
+    <li class="history-entry">
+      <div class="preview history-preview">
+        <span class="muted">No preview</span>
+        <button type="button" aria-label="Enlarge plate preview">
+          <img alt="" loading="lazy" hidden>
+        </button>
+      </div>
+      <div>
+        <h3 class="print-name"></h3>
+        <div class="history-status">
+          <span class="pill" data-field="outcome" hidden></span>
+          <span class="pill" data-field="status"></span>
+        </div>
+        <dl class="history-meta muted">
+          <div data-field="printer" hidden><dt>Printer</dt><dd></dd></div>
+          <div data-field="date" hidden><dt>Ended</dt><dd><time></time></dd></div>
+          <div data-field="elapsed" hidden><dt>Duration</dt><dd></dd></div>
+          <div data-field="estimate" hidden><dt>Estimated</dt><dd></dd></div>
+          <div data-field="extrusion" hidden><dt>Extrusion</dt><dd></dd></div>
+        </dl>
+        <div class="history-spool" hidden>
+          <span class="history-spool-color" aria-hidden="true"></span>
+          <div>
+            <p data-field="material" hidden></p>
+            <p data-field="spool"></p>
+            <p class="muted" data-field="weight" hidden></p>
+          </div>
+        </div>
+        <p class="notice" data-field="issue" hidden></p>
+        <button type="button" data-field="resolve" hidden>Resolve review</button>
+      </div>
+    </li>
+  </template>
+  <script>
+    "use strict";
+
+    const $ = id => document.getElementById(id);
+    const driverKey = "centauri_cc1";
+    const statuses = new Map([
+      [0, "Ready"], [1, "Homing"], [5, "Pausing"],
+      [6, "Paused"], [7, "Stopping"], [8, "Canceled"], [9, "Completed"],
+      [10, "Checking file"], [11, "Checking printer"], [12, "Resuming"],
+      [13, "Printing"], [14, "Print error"], [15, "Leveling bed"],
+      [16, "Heating"], [17, "Calibrating vibration"], [18, "Starting print"],
+      [19, "Bed leveled"], [20, "Heated"], [21, "Homed"], [22, "Vibration calibrated"],
+    ]);
+    const number = new Intl.NumberFormat("en", { maximumFractionDigits: 3 });
+    const percentage = new Intl.NumberFormat("en", { style: "percent", maximumFractionDigits: 1 });
+    const dateTime = new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" });
+    const lastSeenTime = new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "medium" });
+    const weight = grams => Number.isFinite(grams) ? number.format(grams) + " g" : "—";
+    const length = mm => Number.isFinite(mm) ? number.format(mm) + " mm" : "—";
+    const outcomes = {
+      completed: { label: "Completed", tone: "online" },
+      canceled: { label: "Canceled", tone: "error" },
+    };
+
+    function duration(seconds) {
+      if (!Number.isFinite(seconds)) return "—";
+      if (seconds > 0 && seconds < 60) return "< 1 min";
+      const minutes = Math.floor(seconds / 60);
+      return minutes < 60 ? minutes + " min" : Math.floor(minutes / 60) + " h " + minutes % 60 + " min";
+    }
+
+    function setPreview(container, source) {
+      const image = container.querySelector("img");
+      const fallback = container.querySelector("span");
+      if (typeof source === "string" && /^data:image\/png;base64,[a-zA-Z0-9+/=]+$/.test(source)) {
+        if (image.getAttribute("src") === source) return;
+        image.onerror = () => { image.hidden = true; fallback.hidden = false; };
+        image.src = source;
+        image.hidden = false;
+        fallback.hidden = true;
+      } else {
+        image.removeAttribute("src");
+        image.hidden = true;
+        fallback.hidden = false;
+      }
+    }
+    function theme() {
+      const selected = localStorage.getItem("theme");
+      document.documentElement.dataset.theme = ["light", "dark"].includes(selected) ? selected : "brand";
+    }
+    theme();
+    window.addEventListener("storage", event => { if (event.key === "theme") theme(); });
+
+    let fleetHealth = new Map();
+    let spoolDetails = new Map();
+    let printerListError;
+    let fileEstimate;
+    let fileRead = 0;
+    let refreshing;
+    let changingSpool = false;
+    let spoolSearch = 0;
+    const spoolOptions = new Map();
+    let canvasTarget;
+    let canvasSearch = 0;
+    const canvasOptions = new Map();
+    const history = new Map();
+    const printerNames = new Map();
+    const historySize = 30;
+    let historyPage = 0;
+    let historyRequest;
+    let historySearchTimer;
+    let reviewCountRequest;
+    let historyFilters = { search: "", outcome: "", sort: "desc", printer: "" };
+    let currentReview;
+    let reviewSearch = 0;
+    let resolving = false;
+
+    async function api(path, options = {}) {
+      const response = await fetch("/api/v1" + path, {
+        credentials: "same-origin", signal: AbortSignal.timeout(20000), ...options,
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => null);
+        throw new Error(error?.detail?.message || "FilaMan returned an error (" + response.status + ").");
+      }
+      return response.json();
+    }
+
+    async function driverAction(printer, action, params, options = {}) {
+      const csrf = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
+      const result = await api("/printers/" + Number(printer) + "/driver/action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf ? decodeURIComponent(csrf[1]) : "" },
+        body: JSON.stringify({ action, params }),
+        ...options,
+      });
+      if (!result.success) throw new Error(result.message || "FilaMan could not complete the action.");
+      return result.data;
+    }
+
+    function spoolLink(id, name) {
+      const link = document.createElement("a");
+      link.href = "/spools/" + Number(id);
+      link.target = "_blank";
+      link.rel = "noopener";
+      link.textContent = name;
+      return link;
+    }
+
+    function displayName(spool) {
+      const filament = spool.filament || {};
+      const parts = ["#" + spool.id, filament.manufacturer?.name, filament.designation, filament.material_type];
+      return parts.filter(Boolean).join(" · ");
+    }
+
+    function selectedHealth() {
+      return fleetHealth.get($("printer").value);
+    }
+
+    function reportedSlots(health) {
+      if (Array.isArray(health?.slots)) return health.slots;
+      return health && "active_spool_id" in health ? [{ present: health.active_spool_id != null, spool_id: health.active_spool_id }] : [];
+    }
+
+    function catalogPhoto(filament) {
+      const fields = filament.custom_fields;
+      for (const candidate of [filament.image_url, fields?.filament_image_url, fields?.bambu_shop_image_url]) {
+        if (typeof candidate !== "string") continue;
+        const source = candidate.trim();
+        if (!/^https?:\/\//i.test(source) && !/^\/(?![\/\\])/.test(source)) continue;
+        try {
+          const url = new URL(source, location.origin);
+          if (url.username || url.password || (source.startsWith("/") && url.origin !== location.origin)) continue;
+          if (url.protocol === "https:" || (url.protocol === "http:" && location.protocol === "http:")) return url.href;
+        } catch {
+          continue;
+        }
+      }
+      const file = filament.filamentdb_spool_image_file;
+      if (typeof file === "string" && file.length <= 500 && !file.includes("..") && /^[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(file)) {
+        return new URL("/api/v1/filamentdb/spool-profile-image?image_file=" + encodeURIComponent(file), location.origin).href;
+      }
+      return null;
+    }
+
+    function showCatalogPhoto(container, source, name) {
+      const image = container.querySelector("img");
+      const fallback = container.querySelector("p");
+      image.alt = name ? "Catalog photo of " + name : "";
+      if (image.getAttribute("src") === source) return;
+
+      image.hidden = true;
+      fallback.hidden = false;
+      fallback.textContent = source ? "Loading catalog photo…" : "No catalog photo";
+      if (!source) {
+        image.removeAttribute("src");
+        return;
+      }
+      image.onload = () => {
+        if (image.complete && image.naturalWidth) {
+          image.hidden = false;
+          fallback.hidden = true;
+        }
+      };
+      image.onerror = () => {
+        if (image.hasAttribute("src") && image.complete && !image.naturalWidth) {
+          image.hidden = true;
+          fallback.textContent = "Catalog photo unavailable";
+          fallback.hidden = false;
+        }
+      };
+      image.src = source;
+    }
+
+    function spoolBalance(spool) {
+      const measured = spool?.remaining_weight_g;
+      const effective = spool?.metrics?.effective_remaining_weight_g ?? measured;
+      const remainingPercent = spool?.metrics?.remaining_percent;
+      return {
+        grams: Number.isFinite(effective) && effective >= 0 ? effective : null,
+        percent: Number.isFinite(remainingPercent) && remainingPercent >= 0 ? Math.min(remainingPercent, 100) : null,
+        label: Number.isFinite(measured) ? "remaining" : "estimated remaining",
+      };
+    }
+
+    function showLowFilament(element, grams, threshold) {
+      element.hidden = !(grams != null && Number.isFinite(threshold) && threshold > 0 && grams <= threshold);
+    }
+
+    function colorSwatch(value) {
+      return typeof value === "string" && /^#?(?:[\da-f]{3,4}|[\da-f]{6}|[\da-f]{8})$/i.test(value) ? "#" + value.replace(/^#/, "") : "";
+    }
+
+    function showSpoolOverview() {
+      const health = selectedHealth();
+      const id = health?.active_spool_id;
+      const spool = spoolDetails.get(id);
+      const filament = spool?.filament || {};
+      const name = filament.designation || filament.manufacturer_color_name || "Assigned spool";
+      $("spool-name").textContent = spool ? name
+        : id != null ? (spool === null ? "Spool details unavailable" : "Loading spool details…")
+        : health && "active_spool_id" in health ? "No spool assigned"
+        : health ? "Spool status unavailable" : "Waiting for spool status";
+      const manufacturer = filament.manufacturer?.name || "";
+      $("spool-manufacturer").textContent = manufacturer;
+      $("spool-manufacturer").hidden = !manufacturer;
+
+      const { grams, percent, label } = spoolBalance(spool);
+      $("spool-balance").hidden = grams == null && percent == null;
+      $("spool-weight").hidden = grams == null;
+      $("active-weight").textContent = grams == null ? "" : weight(grams);
+      $("spool-weight-label").textContent = label;
+      $("spool-percent").hidden = percent == null;
+      $("spool-percent").textContent = percent == null ? "" : percentage.format(percent / 100);
+      $("spool-progress").hidden = percent == null;
+      $("spool-progress").value = percent ?? 0;
+      showLowFilament($("spool-low-filament"), grams, health?.low_filament_threshold_g);
+
+      const material = filament.material_type || "";
+      const colors = (filament.colors || []).map(item => item.color).filter(Boolean);
+      const hex = colors.length === 1 ? colors[0].hex_code : "";
+      const swatch = colorSwatch(hex);
+      const color = filament.manufacturer_color_name || colors.map(item => item.name).filter(Boolean).join(" / ") || swatch;
+      $("spool-facts").hidden = id == null;
+      $("spool-material-row").hidden = !material;
+      $("spool-material").textContent = material;
+      $("spool-color-row").hidden = !color;
+      $("spool-color").textContent = color;
+      $("spool-swatch").hidden = !swatch;
+      $("spool-swatch").style.backgroundColor = swatch;
+      if (id != null) $("active-spool").href = "/spools/" + Number(id);
+      $("active-spool").textContent = id == null ? "" : "#" + id;
+
+      $("spool-photo").hidden = !spool;
+      showCatalogPhoto($("spool-photo"), catalogPhoto(filament), spool ? name : "");
+      showSpoolCheck();
+    }
+
+    function showSpoolCheck() {
+      const check = $("spool-check");
+      const health = selectedHealth();
+      const hasAssignment = health?.active_spool_id != null;
+      const spool = spoolDetails.get(health?.active_spool_id);
+      const remaining = spool?.remaining_weight_g;
+      const validWeight = Number.isFinite(remaining) && remaining >= 0;
+      const positive = value => Number.isFinite(value) && value > 0;
+      const missing = [];
+      if (spool) {
+        if (!validWeight) missing.push("remaining weight");
+        if (!positive(spool.filament?.diameter_mm)) missing.push("filament diameter");
+        if (!positive(spool.filament?.density_g_cm3)) missing.push("filament density");
+      }
+      check.hidden = !health || !("active_spool_id" in health);
+      check.dataset.warning = String(!spool || missing.length > 0 || remaining === 0);
+      check.textContent = !hasAssignment ? (health?.canvas_connected ? "Spool check · External holder is empty." : "Spool check · Assign a spool before printing.")
+        : !spool ? (spool === null ? "Spool check · Spool details unavailable." : "Spool check · Waiting for spool details.")
+        : missing.length ? "Spool check · Missing or invalid " + missing.join(", ") + "."
+        : remaining === 0 ? "Spool check · No filament remains on this spool."
+        : "Spool check · Ready";
+
+      const estimate = $("filament-estimate");
+      estimate.dataset.warning = "false";
+      if (!fileEstimate || fileEstimate.message) {
+        estimate.textContent = fileEstimate?.message || "Choose a G-code file exported by your slicer.";
+      } else if (!validWeight) {
+        estimate.textContent = "Estimated " + weight(fileEstimate.grams) + " required. A spool with a recorded weight is needed for comparison.";
+        estimate.dataset.warning = "true";
+      } else {
+        const difference = remaining - fileEstimate.grams;
+        const estimateLabel = "Estimated " + weight(fileEstimate.grams) + " required · " + weight(remaining) + " available.";
+        estimate.textContent = estimateLabel + (difference < 0 ? " Short by " + weight(-difference) + "." : " Enough filament for this estimate.");
+        estimate.dataset.warning = String(difference < 0);
+      }
+    }
+
+    function gcodeEstimate(text) {
+      const total = [...text.matchAll(/;[ \t]*total filament used \[g\][ \t]*=[ \t]*([^;\r\n]+)/gi)].at(-1)?.[1].trim();
+      const perSlot = [...text.matchAll(/;[ \t]*filament used \[g\][ \t]*=[ \t]*([^;\r\n]+)/gi)].at(-1)?.[1];
+      if (!total && !perSlot) return null;
+      const scalar = value => /^\d+(?:\.\d+)?$/.test(value) ? Number(value) : NaN;
+      const slots = perSlot?.split(",").map(value => scalar(value.trim())) || [];
+      if (slots.filter(value => value > 0).length > 1) {
+        return { message: "This file uses multiple filaments. Check a single-spool print for CC1." };
+      }
+      const grams = total ? scalar(total) : slots.every(Number.isFinite) ? slots.find(value => value > 0) : NaN;
+      return Number.isFinite(grams) && grams > 0 ? { grams } : { message: "This G-code has no usable filament weight estimate." };
+    }
+
+    async function readGcode() {
+      const request = ++fileRead;
+      const file = $("gcode-file").files[0];
+      fileEstimate = file ? { message: "Reading filament estimate…" } : undefined;
+      showSpoolCheck();
+      if (!file) return;
+      try {
+        if (!/\.gcode$/i.test(file.name)) throw new Error("Choose an exported .gcode file.");
+        const limit = 256 * 1024;
+        let result = gcodeEstimate(await file.slice(Math.max(0, file.size - limit)).text());
+        if (!result && file.size > limit) result = gcodeEstimate(await file.slice(0, limit).text());
+        if (request !== fileRead) return;
+        fileEstimate = result || { message: "No filament weight estimate found in this G-code." };
+      } catch (error) {
+        if (request !== fileRead) return;
+        fileEstimate = { message: error.message };
+      }
+      showSpoolCheck();
+    }
+
+    function canAssign() {
+      const health = selectedHealth();
+      return health?.connected && [0, 8, 9].includes(health.print_status);
+    }
+
+    function updateAssign() {
+      const available = canAssign();
+      const picker = $("spool-picker");
+      picker.hidden = !available;
+      if (!available) picker.open = false;
+      $("assign").disabled = changingSpool || !available || !spoolOptions.has(Number($("spools").value));
+      $("remove-spool").hidden = !available || selectedHealth()?.active_spool_id == null;
+      $("remove-spool").disabled = changingSpool;
+    }
+
+    function showPrinterLink() {
+      const selected = $("printer").selectedOptions[0];
+      const link = $("printer-link");
+      link.hidden = !selected;
+      $("printer-heading").hidden = Boolean(selected);
+      if (selected) {
+        link.href = "/printers/" + Number(selected.value);
+        link.textContent = selected.textContent;
+      }
+    }
+
+    function showFleet() {
+      const printers = Array.from(fleetHealth.values());
+      const slots = printers.flatMap(reportedSlots);
+      const linked = new Set(slots.map(slot => slot.spool_id).filter(id => Number.isInteger(id) && id > 0));
+      const images = Array.from(linked).filter(id => catalogPhoto(spoolDetails.get(id)?.filament || {}));
+      $("fleet-online").textContent = printers.filter(health => health.connected).length + " / " + $("printer").options.length;
+      $("fleet-occupied").textContent = slots.filter(slot => slot.present).length + " / " + slots.length;
+      $("fleet-spools").textContent = linked.size;
+      $("fleet-images").textContent = images.length;
+    }
+
+    function renderCanvasCard(card, slot, available, lowFilamentThreshold) {
+      const field = name => card.querySelector(`[data-slot="${name}"]`);
+      const spool = spoolDetails.get(slot.spool_id);
+      const filament = spool?.filament || {};
+      const loaded = Boolean(slot.present);
+      const active = loaded && Boolean(slot.active);
+      const name = filament.designation || slot.filament_name || slot.tray_type || "Filament detected";
+      const brand = filament.manufacturer?.name || slot.brand;
+      const material = slot.tray_type || filament.material_type;
+      const swatch = colorSwatch(slot.tray_color || filament.colors?.[0]?.color?.hex_code);
+      const color = filament.manufacturer_color_name || swatch;
+      const detail = [...new Set([brand, material === name ? "" : material, color].filter(Boolean))].join(" · ");
+
+      card.dataset.index = slot.slot_index;
+      card.dataset.active = String(active);
+      field("name").textContent = slot.slot_name;
+      field("status").textContent = active ? "Active" : loaded ? "Loaded" : "Empty";
+      field("status").dataset.tone = active ? "online" : "";
+      field("filament").textContent = loaded ? name : "No filament loaded";
+      field("detail").hidden = !loaded || !detail;
+      field("detail").lastElementChild.textContent = detail;
+      const colorDot = field("detail").firstElementChild;
+      colorDot.hidden = !swatch;
+      colorDot.style.backgroundColor = swatch;
+
+      const source = loaded && catalogPhoto(filament) || null;
+      field("photo").hidden = !source;
+      showCatalogPhoto(field("photo"), source, loaded ? name : "");
+      const { grams, percent, label } = spoolBalance(loaded ? spool : null);
+      field("balance").hidden = grams == null && percent == null;
+      field("weight").textContent = grams == null ? "" : weight(grams);
+      field("weight-label").textContent = grams == null ? "" : label;
+      field("percent").textContent = percent == null ? "" : percentage.format(percent / 100);
+      const progress = card.querySelector("progress");
+      progress.hidden = percent == null;
+      progress.value = percent ?? 0;
+      showLowFilament(field("low-filament"), grams, lowFilamentThreshold);
+
+      const inventory = field("inventory");
+      inventory.hidden = !loaded && slot.spool_id == null;
+      if (slot.spool_id != null) {
+        if (inventory.querySelector("a")?.textContent !== "#" + slot.spool_id) {
+          inventory.replaceChildren("FilaMan spool ", spoolLink(slot.spool_id, "#" + slot.spool_id));
+        }
+      } else {
+        inventory.textContent = "No inventory spool linked";
+      }
+      const link = field("link");
+      link.hidden = !available || (!loaded && slot.spool_id == null);
+      link.disabled = changingSpool;
+      link.textContent = slot.spool_id == null ? "Link spool" : "Manage spool link";
+    }
+
+    function showCanvasOverview() {
+      const health = selectedHealth();
+      const slots = reportedSlots(health).filter(slot => slot.slot_kind === "ams");
+      $("canvas-overview").hidden = !health?.canvas_connected && !slots.length;
+      const message = $("canvas-message");
+      message.hidden = slots.length > 0;
+      message.textContent = slots.length ? "" : "Waiting for CANVAS slot data…";
+      const list = $("canvas-slots");
+      const existing = new Map(Array.from(list.children, card => [card.dataset.index, card]));
+      const available = canAssign() && health?.canvas_connected;
+      slots.forEach((slot, index) => {
+        const card = existing.get(slot.slot_index) || $("canvas-card-template").content.firstElementChild.cloneNode(true);
+        existing.delete(slot.slot_index);
+        renderCanvasCard(card, slot, available, health.low_filament_threshold_g);
+        if (list.children[index] !== card) list.insertBefore(card, list.children[index] || null);
+      });
+      for (const card of existing.values()) card.remove();
+      updateCanvasLinkControls();
+    }
+
+    function showHealth() {
+      const health = selectedHealth();
+      const connected = Boolean(health?.connected);
+      const code = health?.print_status;
+      const ended = [8, 9, 14].includes(code);
+      const active = connected && code != null && code !== 0 && !ended;
+      const connection = $("connection");
+      connection.dataset.tone = connected ? "online" : "";
+      connection.textContent = connected ? "Online" : health ? "Offline" : "Loading…";
+      const lastSeen = $("last-seen");
+      const seenAt = Date.parse(health?.last_seen);
+      lastSeen.hidden = !Number.isFinite(seenAt);
+      if (!lastSeen.hidden) {
+        const time = lastSeen.querySelector("time");
+        time.dateTime = health.last_seen;
+        time.textContent = lastSeenTime.format(seenAt);
+      }
+      $("print-panel").dataset.active = String(active);
+      $("live-heading").textContent = active ? "Printing now" : ended && connected ? "Last print" : "Print";
+      const status = $("status");
+      status.textContent = connected ? (statuses.get(code) || "Waiting for status") : "Disconnected";
+      if ([5, 6, 7, 8].includes(code)) status.dataset.tone = "warn";
+      else if (code === 14) status.dataset.tone = "error";
+      else status.dataset.tone = active || code === 9 ? "online" : "";
+
+      const showMetrics = connected && code != null && code !== 0;
+      $("live-print").hidden = !showMetrics;
+      const details = health?.print_details || {};
+      $("print-name").textContent = details.filename || "Unknown print";
+      setPreview($("live-preview"), details.thumbnail);
+      $("elapsed").textContent = duration(details.elapsed_seconds);
+      $("estimated").textContent = duration(details.estimated_seconds);
+      $("extrusion").textContent = length(health?.extrusion_mm);
+      $("remaining-row").hidden = !active;
+      const remaining = details.estimated_seconds - details.elapsed_seconds;
+      $("remaining").textContent = remaining > 0 && details.elapsed_seconds != null ? duration(remaining) : "—";
+      $("meter").hidden = !showMetrics || health.current_layer == null || !health.total_layers;
+      if (!$("meter").hidden) {
+        $("layers").max = health.total_layers;
+        $("layers").value = health.current_layer;
+        $("percent").textContent = Math.min(100, Math.round(100 * health.current_layer / health.total_layers)) + "%";
+        $("layer-label").textContent = "Layer " + health.current_layer + " of " + health.total_layers;
+      }
+      const error = printerListError || health?.last_error || health?.last_usage_issue || "";
+      $("printer-error").hidden = !error;
+      $("printer-error").textContent = error;
+      updateAssign();
+      showSpoolOverview();
+      showCanvasOverview();
+    }
+
+    function refreshPrinter() {
+      if (refreshing) return refreshing;
+      const ids = Array.from($("printer").options, option => option.value);
+      if (!ids.length) return;
+
+      refreshing = (async () => {
+        const printers = await Promise.all(ids.map(async id => {
+          try {
+            return [id, await api("/printers/" + Number(id) + "/driver/health")];
+          } catch (error) {
+            return [id, { last_error: error.message }];
+          }
+        }));
+        const spoolIds = new Set();
+        for (const [, health] of printers) {
+          const linked = [health.active_spool_id, ...reportedSlots(health).map(slot => slot.spool_id)];
+          for (const id of linked) if (Number.isInteger(id) && id > 0) spoolIds.add(id);
+        }
+        const details = await Promise.all(Array.from(spoolIds, async id => {
+          try {
+            const spool = await api("/spools/" + id + "?include_metrics=true");
+            return [id, spool?.id === id ? spool : null];
+          } catch {
+            return [id, null];
+          }
+        }));
+        fleetHealth = new Map(printers);
+        spoolDetails = new Map(details);
+        showFleet();
+        showHealth();
+      })().finally(() => { refreshing = undefined; });
+      return refreshing;
+    }
+
+    async function loadPrinters() {
+      try {
+        const printers = [];
+        for (let page = 1; ; page++) {
+          const data = await api("/printers?page_size=100&page=" + page);
+          printers.push(...data.items.filter(printer => printer.driver_key === driverKey));
+          if (page * 100 >= data.total || !data.items.length) break;
+        }
+        $("printer").replaceChildren(...printers.map(printer => new Option(printer.name, printer.id)));
+        for (const { id, name } of printers) printerNames.set(String(id), name);
+        $("history-printer").append(...printers.map(printer => new Option(printer.name, printer.id)));
+        $("history-printer").hidden = printers.length < 2;
+        $("printer-control").hidden = printers.length < 2;
+        showPrinterLink();
+        if (!printers.length) {
+          $("connection").textContent = "No CC1 configured";
+          showFleet();
+          return;
+        }
+        void refreshPrinter();
+        $("refresh").disabled = false;
+      } catch (error) {
+        printerListError = error.message;
+        showHealth();
+      }
+    }
+
+    async function spoolInventory(search) {
+      const params = new URLSearchParams({ page_size: "50" });
+      if (search.trim()) params.set("search", search.trim());
+      return api("/spools?" + params);
+    }
+
+    function spoolOption(spool) {
+      return new Option(displayName(spool) + " · " + weight(spool.remaining_weight_g), spool.id);
+    }
+
+    async function loadSpools() {
+      const sequence = ++spoolSearch;
+      try {
+        const data = await spoolInventory($("search").value);
+        if (sequence !== spoolSearch) return;
+        const previous = $("spools").value;
+        spoolOptions.clear();
+        const first = new Option("Select a spool", "");
+        const options = data.items.map(spool => {
+          spoolOptions.set(spool.id, spool);
+          return spoolOption(spool);
+        });
+        $("spools").replaceChildren(first, ...options);
+        if (spoolOptions.has(Number(previous))) $("spools").value = previous;
+        $("spool-message").textContent = data.total > 50
+          ? "Showing 50 spools. Narrow your search to find more."
+          : options.length ? "" : "No spools found.";
+        updateAssign();
+      } catch (error) {
+        if (sequence === spoolSearch) $("spool-message").textContent = error.message;
+      }
+    }
+
+    async function changeHolder(action, params, pendingMessage, successMessage) {
+      if (changingSpool || !canAssign()) return;
+      const printer = $("printer").value;
+      changingSpool = true;
+      updateAssign();
+      showCanvasOverview();
+      $("spool-message").textContent = pendingMessage;
+      try {
+        await driverAction(printer, action, params);
+        if ($("printer").value !== printer) return;
+        $("spool-message").textContent = successMessage;
+        $("spool-picker").open = false;
+        await refreshing;
+        await refreshPrinter();
+      } catch (error) {
+        if ($("printer").value === printer) $("spool-message").textContent = error.message;
+      } finally {
+        changingSpool = false;
+        updateAssign();
+        showCanvasOverview();
+      }
+    }
+
+    function assign(event) {
+      event.preventDefault();
+      const spool = spoolOptions.get(Number($("spools").value));
+      if (!spool) return;
+      void changeHolder("send_filament_to_tray", spoolAssignment({ ams_id: 0, tray_id: 0 }, spool),
+        "Assigning…", "Spool #" + spool.id + " assigned.");
+    }
+
+    function spoolAssignment(slot, spool) {
+      const filament = spool.filament || {};
+      return {
+        ams_id: slot.ams_id, tray_id: slot.tray_id, spool_id: spool.id,
+        filament_data: {
+          color: (filament.colors?.[0]?.color?.hex_code || "").replace("#", ""),
+          material_type: filament.material_type || "",
+        },
+      };
+    }
+
+    function canvasSlot(index) {
+      const health = selectedHealth();
+      return health?.canvas_connected && reportedSlots(health).find(slot => slot.slot_kind === "ams" && slot.slot_index === index);
+    }
+
+    function updateCanvasLinkControls() {
+      const dialog = $("canvas-link-dialog");
+      if (!dialog.open) return;
+      const slot = canvasSlot(canvasTarget);
+      const ready = canAssign() && !changingSpool && Boolean(slot);
+      $("canvas-link-close").disabled = changingSpool;
+      $("canvas-link-save").disabled = !ready || !slot.present || !canvasOptions.has(Number($("canvas-link-spools").value));
+      $("canvas-unlink").hidden = slot?.spool_id == null;
+      $("canvas-unlink").disabled = !ready;
+      if (!slot && !changingSpool) $("canvas-link-message").textContent = "CANVAS slot is unavailable.";
+    }
+
+    async function loadCanvasSpools() {
+      const sequence = ++canvasSearch;
+      const select = $("canvas-link-spools");
+      const previous = select.value || String(canvasSlot(canvasTarget)?.spool_id ?? "");
+      const query = $("canvas-link-query").value;
+      select.replaceChildren(new Option("Select a spool", ""));
+      canvasOptions.clear();
+      $("canvas-link-message").textContent = "Searching inventory…";
+      updateCanvasLinkControls();
+      try {
+        const data = await spoolInventory(query);
+        if (sequence !== canvasSearch) return;
+        for (const spool of data.items) canvasOptions.set(spool.id, spool);
+        select.append(...data.items.map(spoolOption));
+        if (canvasOptions.has(Number(previous))) select.value = previous;
+        $("canvas-link-message").textContent = data.total > 50 ? "Showing 50 spools. Narrow your search to find more."
+          : data.items.length ? "" : "No spools found.";
+      } catch (error) {
+        if (sequence === canvasSearch) $("canvas-link-message").textContent = error.message;
+      }
+      updateCanvasLinkControls();
+    }
+
+    function openCanvasLink(index) {
+      const slot = canvasSlot(index);
+      if (!slot || !canAssign() || changingSpool) return;
+      canvasTarget = index;
+      $("canvas-link-slot").textContent = slot.slot_name;
+      $("canvas-link-query").value = "";
+      $("canvas-link-dialog").showModal();
+      void loadCanvasSpools();
+    }
+
+    async function changeCanvasLink(unlink) {
+      const slot = canvasSlot(canvasTarget);
+      if (!slot || !canAssign() || changingSpool) return;
+      const spool = canvasOptions.get(Number($("canvas-link-spools").value));
+      if (unlink ? slot.spool_id == null : !slot.present || !spool) return;
+      const printer = $("printer").value;
+      changingSpool = true;
+      updateAssign();
+      showCanvasOverview();
+      $("canvas-link-message").textContent = unlink ? "Unlinking…" : "Linking…";
+      try {
+        const params = unlink ? { ams_id: slot.ams_id, tray_id: slot.tray_id, spool_id: slot.spool_id } : spoolAssignment(slot, spool);
+        await driverAction(printer, unlink ? "remove_spool" : "send_filament_to_tray", params);
+        $("canvas-link-dialog").close();
+        await refreshing;
+        await refreshPrinter();
+      } catch (error) {
+        $("canvas-link-message").textContent = error.message;
+      } finally {
+        changingSpool = false;
+        updateAssign();
+        showCanvasOverview();
+      }
+    }
+
+    function updateReviewControls() {
+      $("review-close").disabled = resolving;
+      $("review-mark").disabled = resolving;
+      $("review-deduct").disabled = resolving || !$("review-spools").value;
+      $("review-spools").disabled = resolving;
+    }
+
+    async function searchReviewSpools() {
+      const sequence = ++reviewSearch;
+      const target = currentReview;
+      const select = $("review-spools");
+      const previous = select.value || String(target.spool_id ?? "");
+      const query = $("review-query").value;
+      select.replaceChildren(new Option("Select a spool", ""));
+      $("review-message").textContent = "Searching inventory…";
+      updateReviewControls();
+      try {
+        const data = await spoolInventory(query);
+        if (sequence !== reviewSearch) return;
+        select.append(...data.items.map(spoolOption));
+        if (data.items.some(spool => String(spool.id) === previous)) select.value = previous;
+        $("review-message").textContent = data.total > 50 ? "Showing 50 spools. Narrow your search to find more."
+          : data.items.length ? "" : "No spools found.";
+      } catch (error) {
+        if (sequence === reviewSearch) $("review-message").textContent = error.message;
+      }
+      updateReviewControls();
+    }
+
+    function openReview(event) {
+      currentReview = { ...event, printer: event.printer };
+      $("review-print").textContent = event.details?.filename || "Unknown print";
+      $("review-extrusion").textContent = event.can_deduct ? "Final extrusion " + length(event.details.extrusion_mm)
+        : "A confirmed final extrusion reading is required to deduct filament.";
+      $("review-query").value = event.spool_id == null ? "" : "#" + event.spool_id;
+      $("review-spools").replaceChildren(new Option("Select a spool", ""));
+      $("review-search").hidden = !event.can_deduct;
+      $("review-deduct").hidden = !event.can_deduct;
+      $("review-message").textContent = "";
+      updateReviewControls();
+      $("review-dialog").showModal();
+      if (event.can_deduct) void searchReviewSpools();
+    }
+
+    async function resolveReview(deduct) {
+      if (!currentReview || resolving || (deduct && !$("review-spools").value)) return;
+      const params = { run_id: currentReview.id };
+      if (deduct) params.spool_id = Number($("review-spools").value);
+      resolving = true;
+      ++reviewSearch;
+      $("review-message").textContent = "Saving…";
+      updateReviewControls();
+      try {
+        const result = await driverAction(currentReview.printer, "resolve_print_review", params);
+        const messages = { pending: "Deduction queued.", booked: "This print has been deducted.", reviewed: "Print marked as reviewed." };
+        $("history-notice").textContent = messages[result.status];
+        $("review-dialog").close();
+        applyHistoryFilters();
+        void refreshReviewCount();
+      } catch (error) {
+        $("review-message").textContent = error.message;
+      } finally {
+        resolving = false;
+        updateReviewControls();
+      }
+    }
+
+    function historyEntry(event) {
+      const detail = event.details || event.meta?.cc1_print || {};
+      const row = $("entry-template").content.firstElementChild.cloneNode(true);
+      const field = name => row.querySelector('[data-field="' + name + '"]');
+      const title = detail.filename || "Unknown print";
+      row.querySelector(".print-name").textContent = title;
+      const labels = { review: "Needs review", reviewed: "Reviewed", stopped: "No filament used" };
+      const booked = Number.isFinite(event.delta_weight_g);
+      const result = outcomes[detail.outcome] ?? (event.state === "stopped" ? outcomes.canceled : null);
+      const outcome = field("outcome");
+      outcome.textContent = result?.label ?? "";
+      outcome.hidden = !result;
+      outcome.dataset.tone = result?.tone ?? "";
+      const status = field("status");
+      status.textContent = booked ? "Booked" : labels[event.state] ?? "Recorded";
+      status.dataset.tone = booked ? "online" : event.state === "review" ? "warn" : "";
+
+      setPreview(row.querySelector(".history-preview"), detail.thumbnail);
+
+      if (event.printer || printerNames.size > 1) {
+        const printer = field("printer");
+        printer.querySelector("dd").textContent = event.printer
+          ? printerNames.get(event.printer) || "Printer #" + event.printer
+          : "Unknown";
+        printer.hidden = false;
+      }
+      const time = new Date(event.event_at);
+      if (event.event_at && !Number.isNaN(time.valueOf())) {
+        const date = field("date");
+        const stamp = date.querySelector("time");
+        stamp.dateTime = time.toISOString();
+        stamp.textContent = dateTime.format(time);
+        date.hidden = false;
+      }
+      for (const [metric, value, format] of [
+        ["elapsed", detail.elapsed_seconds, duration],
+        ["estimate", detail.estimated_seconds, duration],
+        ["extrusion", detail.extrusion_mm, length],
+      ]) {
+        if (!Number.isFinite(value)) continue;
+        const entry = field(metric);
+        entry.querySelector("dd").textContent = format(value);
+        entry.hidden = false;
+      }
+
+      if (booked || event.spool_id != null) {
+        row.querySelector(".history-spool").hidden = false;
+        row.querySelector(".history-spool-color").style.backgroundColor = colorSwatch(event.colors?.[0]?.hex_code);
+        const material = field("material");
+        material.textContent = event.material_type || "";
+        material.hidden = !material.textContent;
+        const name = ["#" + event.spool_id, event.manufacturer_name, event.manufacturer_color_name].filter(Boolean).join(" · ");
+        field("spool").append(event.spool_id == null ? "Spool unavailable" : spoolLink(event.spool_id, name));
+        const used = field("weight");
+        used.hidden = !booked;
+        if (booked) used.textContent = weight(Math.abs(event.delta_weight_g)) + " booked";
+      }
+      const issue = field("issue");
+      issue.textContent = event.issue || "";
+      issue.hidden = !event.issue;
+      if (event.state === "review") {
+        const resolve = field("resolve");
+        resolve.hidden = false;
+        resolve.addEventListener("click", () => openReview(event));
+      }
+      return row;
+    }
+
+    function showHistory(more) {
+      $("events").replaceChildren(...Array.from(history.values(), historyEntry));
+      $("events").hidden = !history.size;
+      const filtered = historyFilters.outcome || historyFilters.search || historyFilters.printer;
+      const emptyMessages = {
+        review: "No prints need review for this printer.",
+        reviewed: "No prints have been marked as reviewed for this printer.",
+        stopped: "No prints were canceled before using filament on this printer.",
+        usage: more ? "No CC1 records on these pages." : filtered ? "No matching CC1 records." : "No CC1 usage recorded yet.",
+      };
+      $("history-message").textContent = history.size ? "" : emptyMessages[$("history-view").value];
+      $("older").hidden = !more;
+    }
+
+    function reviewPrinter() {
+      return $("history-printer").value || $("printer").value;
+    }
+
+    async function refreshReviewCount() {
+      reviewCountRequest?.abort();
+      const printer = reviewPrinter();
+      if (!printer) return;
+      const request = new AbortController();
+      reviewCountRequest = request;
+      const button = $("review-count");
+      try {
+        const result = await driverAction(printer, "get_review_count", {}, {
+          signal: AbortSignal.any([request.signal, AbortSignal.timeout(20000)]),
+        });
+        if (request.signal.aborted) return;
+        const count = result?.count;
+        button.hidden = !Number.isSafeInteger(count) || count < 0;
+        if (!button.hidden) {
+          button.textContent = "Needs review (" + number.format(count) + ")";
+          button.title = printerNames.get(printer) || "Printer #" + printer;
+        }
+      } catch {
+        if (!request.signal.aborted) button.hidden = true;
+      }
+    }
+
+    async function identifyHistoryPrinters(events, signal) {
+      const printer = reviewPrinter();
+      const eventKeys = events.filter(event => !event.meta?.cc1_printer_id)
+        .map(event => event.meta?.source_event_key).filter(key => typeof key === "string" && key.startsWith("cc1-sdcp:"));
+      let links;
+      if (printer && eventKeys.length) {
+        try {
+          const result = await driverAction(printer, "get_usage_printers", { event_keys: eventKeys }, { signal });
+          links = result.printers;
+        } catch {
+          // A history reader may not have driver-action access.
+        }
+      }
+      for (const event of events) {
+        const id = event.meta?.cc1_printer_id ?? links?.[event.meta?.source_event_key];
+        if (Number.isSafeInteger(id) && id > 0) event.printer = String(id);
+      }
+    }
+
+    async function loadHistory(older = false) {
+      if (historyRequest) return;
+      const request = new AbortController();
+      historyRequest = request;
+      $("older").disabled = true;
+      const { search, outcome, sort, printer } = historyFilters;
+      const filters = { event_type: { type: "text", operator: "equals", value: "print_consumption" } };
+      if (outcome) filters.note = { type: "text", operator: "contains", value: "CC1 " + outcome + " | " };
+      let page = older ? historyPage + 1 : 1;
+      const params = new URLSearchParams({ page_size: historySize, sort_order: sort, filters: JSON.stringify(filters) });
+      if (search) params.set("search", search.replace(/^#(?=\d+$)/, ""));
+      try {
+        const view = $("history-view").value;
+        if (view !== "usage") {
+          if (!printer) {
+            $("history-message").textContent = "No CC1 printer selected.";
+            return;
+          }
+          const result = await driverAction(printer, "get_unbooked_prints", { state: view, page }, {
+            signal: AbortSignal.any([request.signal, AbortSignal.timeout(20000)]),
+          });
+          if (historyRequest !== request) return;
+          if (!older) history.clear();
+          for (const event of result.items) history.set(event.id, { ...event, printer });
+          historyPage = page;
+          showHistory(result.has_more);
+          return;
+        }
+        const matches = [];
+        let more;
+        for (let attempts = 0; attempts < 3; attempts++, page++) {
+          params.set("page", page);
+          const signal = AbortSignal.any([request.signal, AbortSignal.timeout(20000)]);
+          const result = await api("/spools/all-events?" + params, { signal });
+          const events = result.items.filter(event => event.source === driverKey && Number.isFinite(event.delta_weight_g)
+            && (!outcome || event.meta?.cc1_print?.outcome === outcome));
+          await identifyHistoryPrinters(events, signal);
+          if (historyRequest !== request) return;
+          matches.push(...events.filter(event => !printer || event.printer === printer));
+          more = page * historySize < result.total;
+          historyPage = page;
+          if (!more || matches.length) break;
+        }
+        if (!older) history.clear();
+        for (const event of matches) history.set(event.id, event);
+        showHistory(more);
+      } catch (error) {
+        if (historyRequest === request) $("history-message").textContent = error.message;
+      } finally {
+        if (historyRequest === request) {
+          historyRequest = undefined;
+          $("older").disabled = false;
+        }
+      }
+    }
+
+    function applyHistoryFilters() {
+      clearTimeout(historySearchTimer);
+      historyRequest?.abort();
+      historyRequest = undefined;
+      const showUsage = $("history-view").value === "usage";
+      const printers = $("history-printer");
+      if (!showUsage && !printers.value) printers.value = reviewPrinter();
+      printers.options[0].disabled = !showUsage;
+      historyFilters = {
+        search: $("history-search").value.trim(), outcome: $("outcome").value,
+        sort: $("history-sort").value, printer: printers.value,
+      };
+      for (const id of ["history-search", "outcome", "history-sort"]) $(id).hidden = !showUsage;
+      history.clear();
+      historyPage = 0;
+      $("events").replaceChildren();
+      $("events").hidden = true;
+      $("older").hidden = true;
+      $("history-message").textContent = "Loading…";
+      void loadHistory();
+    }
+
+    $("refresh").addEventListener("click", async () => {
+      $("refresh").disabled = true;
+      try {
+        await Promise.all([refreshPrinter(), refreshReviewCount()]);
+      } finally {
+        $("refresh").disabled = false;
+      }
+    });
+    $("printer").addEventListener("change", () => {
+      $("spool-message").textContent = "";
+      showPrinterLink();
+      showHealth();
+      void refreshPrinter();
+      if (!$("history-printer").value) {
+        $("review-count").hidden = true;
+        void refreshReviewCount();
+      }
+    });
+    $("canvas-slots").addEventListener("click", event => {
+      const button = event.target.closest('button[data-slot="link"]');
+      if (button) openCanvasLink(button.closest(".canvas-card").dataset.index);
+    });
+    $("canvas-link-search").addEventListener("submit", event => { event.preventDefault(); void loadCanvasSpools(); });
+    $("canvas-link-form").addEventListener("submit", event => { event.preventDefault(); void changeCanvasLink(false); });
+    $("canvas-link-spools").addEventListener("change", updateCanvasLinkControls);
+    $("canvas-unlink").addEventListener("click", () => void changeCanvasLink(true));
+    $("canvas-link-close").addEventListener("click", () => $("canvas-link-dialog").close());
+    $("canvas-link-dialog").addEventListener("cancel", event => { if (changingSpool) event.preventDefault(); });
+    $("canvas-link-dialog").addEventListener("close", () => {
+      ++canvasSearch;
+      canvasTarget = undefined;
+      canvasOptions.clear();
+    });
+    $("spool-picker").addEventListener("toggle", () => {
+      if ($("spool-picker").open && !spoolOptions.size) void loadSpools();
+    });
+    $("spools").addEventListener("change", updateAssign);
+    $("spool-search").addEventListener("submit", event => { event.preventDefault(); void loadSpools(); });
+    $("spool-assign").addEventListener("submit", assign);
+    $("gcode-file").addEventListener("change", readGcode);
+    $("review-search").addEventListener("submit", event => { event.preventDefault(); void searchReviewSpools(); });
+    $("review-spools").addEventListener("change", updateReviewControls);
+    $("review-close").addEventListener("click", () => $("review-dialog").close());
+    $("review-dialog").addEventListener("cancel", event => { if (resolving) event.preventDefault(); });
+    $("review-dialog").addEventListener("close", () => { ++reviewSearch; currentReview = undefined; });
+    $("review-mark").addEventListener("click", () => void resolveReview(false));
+    $("review-deduct").addEventListener("click", () => void resolveReview(true));
+    $("remove-spool").addEventListener("click", () => {
+      const spoolId = selectedHealth()?.active_spool_id;
+      if (spoolId == null) return;
+      void changeHolder("remove_spool", { spool_id: spoolId }, "Removing…", "Spool #" + spoolId + " removed from the holder.");
+    });
+    $("history-view").addEventListener("change", () => { $("history-notice").textContent = ""; applyHistoryFilters(); });
+    $("history-printer").addEventListener("change", () => {
+      $("history-notice").textContent = "";
+      $("review-count").hidden = true;
+      applyHistoryFilters();
+      void refreshReviewCount();
+    });
+    $("review-count").addEventListener("click", () => {
+      $("history-view").value = "review";
+      $("history-notice").textContent = "";
+      applyHistoryFilters();
+    });
+    $("history-filters").addEventListener("submit", event => { event.preventDefault(); applyHistoryFilters(); });
+    $("history-search").addEventListener("input", () => {
+      clearTimeout(historySearchTimer);
+      historySearchTimer = setTimeout(() => {
+        if ($("history-search").value.trim() !== historyFilters.search) applyHistoryFilters();
+      }, 300);
+    });
+    $("outcome").addEventListener("change", applyHistoryFilters);
+    $("history-sort").addEventListener("change", applyHistoryFilters);
+    $("events").addEventListener("click", event => {
+      const button = event.target.closest(".history-preview button");
+      if (!button) return;
+      const dialog = $("history-preview-dialog");
+      $("history-preview-title").textContent = button.closest(".history-entry").querySelector(".print-name").textContent;
+      dialog.querySelector("img").src = button.querySelector("img").src;
+      dialog.showModal();
+    });
+    $("history-preview-close").addEventListener("click", () => $("history-preview-dialog").close());
+    $("history-preview-dialog").addEventListener("close", () => $("history-preview-dialog").querySelector("img").removeAttribute("src"));
+    $("older").addEventListener("click", () => void loadHistory(true));
+    void loadPrinters().then(() => { applyHistoryFilters(); void refreshReviewCount(); });
+    setInterval(() => { if (!document.hidden) void refreshPrinter(); }, 6000);
+    setInterval(() => {
+      if (document.hidden) return;
+      void refreshReviewCount();
+      if (historyPage <= 1 && !$("review-dialog").open) void loadHistory();
+    }, 20000);
+  </script>
+</body>
+</html>
