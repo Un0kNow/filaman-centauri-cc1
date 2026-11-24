@@ -23,7 +23,7 @@ After upgrading to 0.1.15, existing plate previews remain available in **Prints*
 ## Build
 
 ```sh
-python3 -m zipfile -c centauri_cc1.zip __init__.py plugin.json driver.py sdcp.py usage.py page.html LICENSE
+python3 -m zipfile -c centauri_cc1.zip __init__.py plugin.json driver.py sdcp.py usage.py page.html icon.svg LICENSE
 ```
 
 ## License
