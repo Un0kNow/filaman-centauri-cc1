@@ -4,10 +4,11 @@
   "plugin_type": "driver",
   "name": "Elegoo Centauri Carbon 1",
   "author": "3d-tlac-infra contributors",
-  "version": "0.1.15",
+  "version": "0.1.16",
   "description": "Shows CC1 filament and CANVAS slots over SDCP and tracks measured usage for single-spool prints.",
   "page_url": "/plugin-page/centauri_cc1",
   "show_in_nav": true,
+  "icon": "icon.svg",
   "dependencies": ["websockets>=15", "httpx>=0.27"],
   "config_schema": {
     "type": "object",
