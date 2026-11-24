@@ -18,6 +18,8 @@ Requires FilaMan 2.3.1 or later. The release was tested on FilaMan 2.3.1 against
 
 Open **Elegoo Centauri Carbon 1** from FilaMan's plugin sidebar to see the spool overview and **Prints**.
 
+After upgrading to 0.1.15, existing plate previews remain available in **Prints**. The upgrade moves them out of spool event metadata.
+
 ## Build
 
 ```sh

@@ -1,9 +1,10 @@
 """Store run-to-spool bindings and retry completed usage safely."""
 
+from asyncio import Lock
 from datetime import UTC, datetime
 from math import isfinite, pi
 
-from sqlalchemy import JSON, Column, Float, ForeignKey, Integer, MetaData, String, Table, and_, func, or_, select, tuple_, update
+from sqlalchemy import JSON, Column, Float, ForeignKey, Integer, MetaData, String, Table, Text, and_, func, or_, select, tuple_, update
 from sqlalchemy.exc import IntegrityError
 
 from app.core.database import async_session_maker, engine
@@ -12,7 +13,7 @@ from app.models.printer import PrinterSlotAssignment
 from app.models.spool import Spool, SpoolEvent
 from app.services.spool_service import SpoolService
 
-from .sdcp import BOARD_ID
+from .sdcp import BOARD_ID, MAX_THUMBNAIL_BYTES
 
 
 metadata = MetaData()
@@ -35,17 +36,74 @@ run_details = Table(
     Column("task_id", String(128), primary_key=True),
     Column("details", JSON, nullable=False),
 )
+usage_previews = Table(
+    "centauri_cc1_usage_previews", metadata,
+    Column("event_id", Integer, ForeignKey(SpoolEvent.id, ondelete="CASCADE"), primary_key=True),
+    Column("thumbnail", Text, nullable=False),
+)
 DETAILS_KEY = and_(runs.c.board_id == run_details.c.board_id, runs.c.task_id == run_details.c.task_id)
 UNBOOKED_PAGE_SIZE = 30
 ACKNOWLEDGED_AT = run_details.c.details["review_acknowledged_at"].as_string()
 NEEDS_REVIEW = or_(runs.c.state == "review", and_(runs.c.state == "tracking", runs.c.issue.is_not(None)))
 OPEN_REVIEW = and_(NEEDS_REVIEW, ACKNOWLEDGED_AT.is_(None))
 EVENT_KEY_PREFIX = "cc1-sdcp:"
+PREVIEW_PREFIX = "data:image/png;base64,"
+MAX_PREVIEW_LENGTH = len(PREVIEW_PREFIX) + 4 * ((MAX_THUMBNAIL_BYTES + 2) // 3)
+_initialize_lock = Lock()
 
 
 async def initialize_usage() -> None:
-    async with engine.begin() as conn:
-        await conn.run_sync(metadata.create_all)
+    async with _initialize_lock:
+        async with engine.begin() as conn:
+            await conn.run_sync(metadata.create_all)
+        await _move_legacy_previews()
+
+
+async def _store_event_details(db, event: SpoolEvent, details: dict | None = None, *, printer_id: int | None = None) -> None:
+    meta = dict(event.meta or {})
+    print_details = {**(meta.get("cc1_print") or {}), **(details or {})}
+    thumbnail = print_details.pop("thumbnail", None)
+    print_details.pop("review_acknowledged_at", None)
+    if isinstance(thumbnail, str) and thumbnail.startswith(PREVIEW_PREFIX) and len(thumbnail) <= MAX_PREVIEW_LENGTH:
+        event_id = event.id
+        saved = await db.scalar(select(usage_previews.c.event_id).where(usage_previews.c.event_id == event_id))
+        if saved is None:
+            await db.execute(usage_previews.insert().values(event_id=event_id, thumbnail=thumbnail))
+        meta["cc1_has_preview"] = True
+    if print_details or "cc1_print" in meta:
+        meta["cc1_print"] = print_details
+    if printer_id is not None:
+        meta["cc1_printer_id"] = printer_id
+    event.meta = meta
+
+
+async def _move_legacy_previews() -> None:
+    last_id = 0
+    while True:
+        async with async_session_maker.begin() as db:
+            events = (await db.scalars(select(SpoolEvent).where(
+                SpoolEvent.id > last_id, SpoolEvent.source == "centauri_cc1",
+                SpoolEvent.event_type == "print_consumption",
+                SpoolEvent.meta["cc1_print"]["thumbnail"].as_string().is_not(None),
+            ).order_by(SpoolEvent.id).limit(30).with_for_update())).all()
+            if not events:
+                return
+            for event in events:
+                await _store_event_details(db, event)
+            last_id = events[-1].id
+
+
+async def booked_previews(event_ids: list[int]) -> dict[int, str]:
+    if (not isinstance(event_ids, list) or len(event_ids) > 30
+            or any(type(id_) is not int or not 1 <= id_ <= 2**63 - 1 for id_ in event_ids)):
+        raise ValueError("Select up to 30 valid usage events.")
+    if not event_ids:
+        return {}
+    async with async_session_maker() as db:
+        rows = await db.execute(select(usage_previews.c.event_id, usage_previews.c.thumbnail).where(
+            usage_previews.c.event_id.in_(event_ids),
+        ))
+        return dict(rows.tuples().all())
 
 
 def _grams_per_mm(spool: Spool | None) -> float | None:
@@ -330,6 +388,7 @@ class Usage:
             ).limit(1))
             now = datetime.now(UTC).isoformat()
             if existing is not None:
+                await _store_event_details(db, existing, details, printer_id=self.printer_id)
                 await db.execute(update(runs).where(*key).values(state="booked", spool_id=existing.spool_id, issue=None))
                 await db.execute(run_details.delete().where(run_details.c.board_id == board, run_details.c.task_id == task))
                 return {"status": "booked"}
@@ -378,7 +437,9 @@ class Usage:
                     issue = None
                     # The binding and grams were committed before booking. FilaMan
                     # deduplicates retries on the same spool, even after a restart.
-                    note = f"CC1 {details['outcome']} | {details.get('filename') or 'Unknown print'}" if details else None
+                    outcome = details.get("outcome") if details else None
+                    kind = outcome if outcome in ("completed", "canceled") else "print"
+                    note = f"CC1 {kind} | {details.get('filename') or 'Unknown print'}" if details else None
                     event, _ = await service.record_consumption(
                         spool=spool,
                         delta_weight_g=-run["grams"],
@@ -387,11 +448,7 @@ class Usage:
                         source_event_key=_event_key(board_id, task_id),
                         note=note,
                     )
-                    meta = {**(event.meta or {}), "cc1_printer_id": self.printer_id}
-                    if details:
-                        details.pop("review_acknowledged_at", None)
-                        meta["cc1_print"] = details
-                    event.meta = meta
+                    await _store_event_details(db, event, details, printer_id=self.printer_id)
                 await db.execute(update(runs).where(
                     *self._run(board_id, task_id), runs.c.state == "pending",
                 ).values(state="review" if issue else "booked", issue=issue))
