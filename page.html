@@ -1380,7 +1380,7 @@
       status.textContent = booked ? "Booked" : labels[event.state] ?? "Recorded";
       status.dataset.tone = booked ? "online" : event.state === "review" ? "warn" : "";
 
-      setPreview(row.querySelector(".history-preview"), detail.thumbnail);
+      setPreview(row.querySelector(".history-preview"), event.thumbnail ?? detail.thumbnail);
 
       if (event.printer || printerNames.size > 1) {
         const printer = field("printer");
@@ -1491,6 +1491,20 @@
       }
     }
 
+    async function loadBookedPreviews(events, signal) {
+      const printer = reviewPrinter();
+      const withPreview = events.filter(event => event.meta?.cc1_has_preview === true);
+      if (!printer || !withPreview.length) return;
+      try {
+        const { previews } = await driverAction(printer, "get_usage_previews", {
+          event_ids: withPreview.map(event => event.id),
+        }, { signal });
+        for (const event of withPreview) event.thumbnail = previews?.[event.id];
+      } catch {
+        // Booked rows still render when the caller lacks driver-action access.
+      }
+    }
+
     async function loadHistory(older = false) {
       if (historyRequest) return;
       const request = new AbortController();
@@ -1529,7 +1543,10 @@
             && (!outcome || event.meta?.cc1_print?.outcome === outcome));
           await identifyHistoryPrinters(events, signal);
           if (historyRequest !== request) return;
-          matches.push(...events.filter(event => !printer || event.printer === printer));
+          const filtered = events.filter(event => !printer || event.printer === printer);
+          await loadBookedPreviews(filtered, signal);
+          if (historyRequest !== request) return;
+          matches.push(...filtered);
           more = page * historySize < result.total;
           historyPage = page;
           if (!more || matches.length) break;

@@ -21,7 +21,7 @@ from .sdcp import (
     BOARD_ID, COMPLETE, IDLE, PRINTING, STOPPED, STOPPING, CanvasReport, CanvasSlot, Status, Thumbnail,
     fetch_thumbnail, read_status,
 )
-from .usage import Usage, initialize_usage, usage_printers
+from .usage import Usage, booked_previews, initialize_usage, usage_printers
 
 
 logger = logging.getLogger(__name__)
@@ -280,6 +280,9 @@ class Driver(BaseDriver):
 
     async def get_usage_printers(self, event_keys: list[str]) -> dict:
         return {"printers": await usage_printers(event_keys)}
+
+    async def get_usage_previews(self, event_ids: list[int]) -> dict:
+        return {"previews": await booked_previews(event_ids)}
 
     async def get_latest_usage_receipt(self) -> dict:
         return {"receipt": await self._usage.latest_receipt()}
